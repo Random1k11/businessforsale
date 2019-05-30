@@ -2,36 +2,38 @@
 import scrapy
 from businessforsale.items import BusinessforsaleItem
 from scrapy.utils.project import get_project_settings
-# from scrapy.http.request.form import MultipartFormRequest, MultipartFile
-import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import os
+
+
 
 
 class BusinessforsaleSpider(scrapy.Spider):
 
-    name = 'bus'
+    name = 'businessforsale'
     start_urls = ['https://www.businessforsale.com/']
     login_page = 'https://www.businessforsale.com/login.html'
 
 
     def start_requests(self):
         if get_project_settings().get('LOGIN_REQUIRED') == 1:
-            files = {'username': 'random1k11@yandex.ru', 'password': 'dima1994', 'login': 'Login', 'usertype': '1', 'controller': 'login', 'user_id': '', 'mod': 'mod_index', 'previousUrl': 'https://poland.businessforsale.com/'}
-            r = requests.Request('POST', 'https://www.businessforsale.com/login.html', files=files).prepare().body.decode('utf8')
-            yield scrapy.Request(url=self.login_page, method='POST', body=r, headers={'Content-Type': 'multipart/form-data; boundary=WebKitFormBoundaryj9yKl83Zu7ki71zE'}, callback=self.login)
-
-            # data = {'username': 'random1k11@yandex.ru', 'password': 'dima1994', 'login': 'Login', 'usertype': '1', 'controller': 'login', 'user_id': '', 'mod': 'mod_index', 'previousUrl': 'https://poland.businessforsale.com/'}
-            # yield scrapy.FormRequest(url=self.login_page, formdata=data, callback=self.login, )
-#             yield scrapy.FormRequest(url=self.login_page, formdata={'username': 'random1k11@yandex.ru', 'password': 'dima1994', 'login': 'Login', 'usertype': '1', 'controller': 'login', 'user_id': '', 'mod': 'mod_index', 'previousUrl': 'https://poland.businessforsale.com/'}
-# , callback=self.login)
+            yield scrapy.Request(url=self.login_page, callback=self.login)
         else:
             yield scrapy.Request(url=self.start_urls[0], callback=self.parse, dont_filter=True)
 
 
     def login(self, response):
-        print(response.xpath('//ul[@class="socialIcons"]').extract_first())
-        yield scrapy.FormRequest(url=self.start_urls[0],
-                                 formdata={'username': 'random1k11', 'password': 'dima1994'},
-                                 callback=self.parse, dont_filter=True)
+        options = Options()
+        options.add_argument('--headless')
+        browser = webdriver.Chrome(executable_path=os.getcwd() + '/chromedriver', options=options)
+        browser.get('https://www.businessforsale.com/login.html')
+        browser.find_element_by_xpath('//input[@name="username"]').send_keys(get_project_settings().get('LOGIN'))
+        browser.find_element_by_xpath('//input[@name="password"]').send_keys(get_project_settings().get('PASSWORD'))
+        browser.find_element_by_xpath('//div[@class="formBlock"]/input[@value="Login"]').click()
+        cookies = browser.get_cookies()
+        browser.close()
+        yield scrapy.Request(url=self.start_urls[0], cookies=cookies, callback=self.parse)
 
 
     def parse(self, response):
@@ -50,6 +52,10 @@ class BusinessforsaleSpider(scrapy.Spider):
 
 
     def parse_item(self, response):
+
+        r = response.xpath('//*[@id="topheader"]/div[1]/div').extract()
+        print(r)
+
         title = response.xpath('//div[@class="row"]//h1/text()').extract_first().strip()
         location = response.xpath('//div[@class="row"]//h1/following-sibling::p/text()').extract_first().strip()
         price = response.xpath('//h2/text()').extract_first().strip()

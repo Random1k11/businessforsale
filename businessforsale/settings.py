@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 
-LOGIN_REQUIRED = 1
+###### LOGIN ######
+# if you specify "1" it will be logged in
+LOGIN_REQUIRED = 0
+LOGIN = 'your_login'
+PASSWORD = 'password'
+###################
 
 SOURCE = 'B4SALE'
 
@@ -48,8 +53,6 @@ DOWNLOADER_MIDDLEWARES = {
 LOG_LEVEL = 'ERROR'
 
 ROBOTSTXT_OBEY = True
-
-
 
 COOKIES_ENABLED = True
 COOKIES_DEBUG = True
